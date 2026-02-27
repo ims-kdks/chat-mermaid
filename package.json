@@ -10,5 +10,8 @@
     "@types/node": "^25.3.2",
     "typescript": "^5.7.3",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "beautiful-mermaid": "^1.1.3"
   }
 }
