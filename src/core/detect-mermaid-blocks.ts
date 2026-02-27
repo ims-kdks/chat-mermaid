@@ -7,7 +7,7 @@ export type MermaidBlock = {
 };
 
 export function detectMermaidBlocks(messageId: string, partId: string, text: string): MermaidBlock[] {
-  const regex = /```mermaid\n([\s\S]*?)```/g;
+  const regex = /```mermaid[ \t]*\r?\n([\s\S]*?)```/g;
   const blocks: MermaidBlock[] = [];
   let match: RegExpExecArray | null;
   let index = 0;
