@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createChatPreviewPayload } from "../../src/adapters/chat-adapter";
 import { createPreviewStateStore } from "../../src/state/preview-state-store";
+import {
+  createChatPreviewPayload as createChatPreviewPayloadFromEntrypoint,
+  createPreviewStateStore as createPreviewStateStoreFromEntrypoint,
+} from "../../src";
 
 describe("chat preview state", () => {
   it("defaults to closed and toggles open/closed", () => {
@@ -40,5 +44,12 @@ describe("createChatPreviewPayload", () => {
       mimeType: "image/svg+xml",
       svgMarkup: "<svg/>",
     });
+  });
+});
+
+describe("entrypoint exports", () => {
+  it("re-exports Task 5 chat APIs", () => {
+    expect(createChatPreviewPayloadFromEntrypoint).toBe(createChatPreviewPayload);
+    expect(createPreviewStateStoreFromEntrypoint).toBe(createPreviewStateStore);
   });
 });
