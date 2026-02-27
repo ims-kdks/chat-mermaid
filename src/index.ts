@@ -1,5 +1,6 @@
 import { detectMermaidBlocks } from "./core/detect-mermaid-blocks";
 import { createRenderCoordinator, type RenderResult } from "./core/render-coordinator";
+import { createChatPreviewPayload, type ChatPreviewPayload } from "./adapters/chat-adapter";
 
 type MermaidRendererModule = {
   renderMermaidSVG?: (code: string) => string | Promise<string>;
@@ -12,8 +13,18 @@ type MermaidPreview = {
   blockIndex: number;
   code: string;
   blockHash: string;
-  renderResult: RenderResult;
+  renderResult: TransformRenderResult;
 };
+
+type TransformRenderResult =
+  | {
+      status: "success";
+      payload: ChatPreviewPayload;
+    }
+  | {
+      status: "error";
+      warning: "Mermaid preview unavailable";
+    };
 
 type TransformMessage = {
   id?: string;
@@ -51,13 +62,24 @@ const renderCoordinator = createRenderCoordinator(async (code) => {
   return renderer(code);
 });
 
+function toTransformRenderResult(result: RenderResult): TransformRenderResult {
+  if (result.status === "success") {
+    return {
+      status: "success",
+      payload: createChatPreviewPayload(result.svg),
+    };
+  }
+
+  return result;
+}
+
 async function transformMessages(input: { messages: TransformMessage[] }): Promise<TransformMessage[]> {
   const transformed: TransformMessage[] = [];
   const messages = Array.isArray(input?.messages) ? input.messages : [];
 
   for (const [messageIndex, message] of messages.entries()) {
     try {
-      if (message.role !== "assistant" && message.role !== "model") {
+      if (message.role !== "model") {
         transformed.push(message);
         continue;
       }
@@ -76,7 +98,9 @@ async function transformMessages(input: { messages: TransformMessage[] }): Promi
           const partId = textPart.id ?? `part-${partIndex}`;
           const blocks = detectMermaidBlocks(messageId, partId, textPart.text);
           for (const block of blocks) {
-            const renderResult = await renderCoordinator.render(block.blockHash, block.code);
+            const renderResult = toTransformRenderResult(
+              await renderCoordinator.render(block.blockHash, block.code),
+            );
             previews.push({
               messageId,
               partId,

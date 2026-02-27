@@ -10,11 +10,31 @@ vi.mock("beautiful-mermaid", () => {
   }
 
   return {
-    renderMermaid: (code: string) => {
-      if (rendererState.mode === "render-fail") {
+    renderMermaidSVG: (code: string) => {
+      if (rendererState.mode !== "success") {
         throw new Error("renderer failed");
       }
       return `<svg>${code}</svg>`;
+    },
+    renderMermaid: (code: string) => {
+      if (rendererState.mode !== "success") {
+        throw new Error("renderer failed");
+      }
+      return `<svg>${code}</svg>`;
+    },
+    default: {
+      renderMermaidSVG: (code: string) => {
+        if (rendererState.mode !== "success") {
+          throw new Error("renderer failed");
+        }
+        return `<svg>${code}</svg>`;
+      },
+      renderMermaid: (code: string) => {
+        if (rendererState.mode !== "success") {
+          throw new Error("renderer failed");
+        }
+        return `<svg>${code}</svg>`;
+      },
     },
   };
 });
@@ -32,30 +52,46 @@ describe("plugin message transform integration", () => {
     expect(typeof plugin.experimental.chat.messages.transform).toBe("function");
   });
 
-  it("adds mermaid previews for assistant messages only", async () => {
+  it("adds mermaid previews for model messages only and uses chat payload shape", async () => {
     const { default: plugin } = await import("../../src/index");
 
+    const modelMessage = {
+      id: "m-model",
+      role: "model",
+      parts: [{ id: "p1", type: "text", text: "```mermaid\ngraph TD\nA-->B\n```" }],
+      info: {},
+    };
     const assistantMessage = {
       id: "m-assistant",
       role: "assistant",
-      parts: [{ id: "p1", type: "text", text: "```mermaid\nflowchart TD\nA-->B\n```" }],
+      parts: [{ id: "p1", type: "text", text: "```mermaid\ngraph TD\nA-->B\n```" }],
       info: {},
     };
     const userMessage = {
       id: "m-user",
       role: "user",
-      parts: [{ id: "p1", type: "text", text: "```mermaid\nflowchart TD\nB-->C\n```" }],
+      parts: [{ id: "p1", type: "text", text: "```mermaid\ngraph TD\nB-->C\n```" }],
       info: {},
     };
 
     const transformed = await plugin.experimental.chat.messages.transform({
-      messages: [assistantMessage, userMessage],
+      messages: [modelMessage, assistantMessage, userMessage],
     });
 
     expect(transformed[0].info.mermaidPreviews).toHaveLength(1);
-    expect(transformed[0].parts).toEqual(assistantMessage.parts);
+    expect(transformed[0].info.mermaidPreviews[0].renderResult.status).toBe("success");
+    expect(transformed[0].info.mermaidPreviews[0].renderResult.payload).toEqual(
+      expect.objectContaining({
+        kind: "image",
+        mimeType: "image/svg+xml",
+      }),
+    );
+    expect(transformed[0].info.mermaidPreviews[0].renderResult.payload.svgMarkup).toContain("<svg");
+    expect(transformed[0].parts).toEqual(modelMessage.parts);
     expect(transformed[1].info.mermaidPreviews).toBeUndefined();
-    expect(transformed[1].parts).toEqual(userMessage.parts);
+    expect(transformed[1].parts).toEqual(assistantMessage.parts);
+    expect(transformed[2].info.mermaidPreviews).toBeUndefined();
+    expect(transformed[2].parts).toEqual(userMessage.parts);
   });
 
   it("adds fallback preview metadata when renderer import fails", async () => {
@@ -65,8 +101,8 @@ describe("plugin message transform integration", () => {
     const transformed = await plugin.experimental.chat.messages.transform({
       messages: [
         {
-          id: "m-assistant",
-          role: "assistant",
+          id: "m-model",
+          role: "model",
           parts: [{ id: "p1", type: "text", text: "```mermaid\nflowchart TD\nA-->B\n```" }],
           info: {},
         },
@@ -75,11 +111,11 @@ describe("plugin message transform integration", () => {
 
     expect(transformed[0].info?.mermaidPreviews).toEqual([
       {
-        messageId: "m-assistant",
+        messageId: "m-model",
         partId: "p1",
         blockIndex: 0,
         code: "flowchart TD\nA-->B",
-        blockHash: "m-assistant:p1:0:flowchart TD\nA-->B",
+        blockHash: "m-model:p1:0:flowchart TD\nA-->B",
         renderResult: {
           status: "error",
           warning: "Mermaid preview unavailable",
@@ -112,26 +148,26 @@ describe("plugin message transform integration", () => {
       messages: [
         {
           id: "m-good-1",
-          role: "assistant",
+          role: "model",
           parts: [{ id: "p1", type: "text", text: "```mermaid\nA-->B\n```" }],
           info: {},
         },
         badMessage as any,
         {
           id: "m-bad-part",
-          role: "assistant",
+          role: "model",
           parts: [badPart as any, { id: "p2", type: "text", text: "```mermaid\nB-->C\n```" }],
           info: {},
         },
         {
           id: "m-bad-parts-shape",
-          role: "assistant",
+          role: "model",
           parts: { type: "text", text: "```mermaid\nC-->D\n```" } as unknown as any[],
           info: {},
         },
         {
           id: "m-good-2",
-          role: "assistant",
+          role: "model",
           parts: [{ id: "p3", type: "text", text: "```mermaid\nD-->E\n```" }],
           info: {},
         },
