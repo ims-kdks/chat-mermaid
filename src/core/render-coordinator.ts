@@ -1,6 +1,6 @@
 export type RenderResult =
   | { status: "success"; svg: string }
-  | { status: "error"; warning: string };
+  | { status: "error"; warning: "Mermaid preview unavailable" };
 
 export function createRenderCoordinator(renderFn: (code: string) => Promise<string>) {
   const cache = new Map<string, RenderResult>();

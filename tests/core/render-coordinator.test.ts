@@ -10,6 +10,9 @@ describe("createRenderCoordinator", () => {
     const result = await coordinator.render("hash-1", "flowchart TD");
 
     expect(result.status).toBe("error");
+    if (result.status !== "error") {
+      throw new Error("expected error result");
+    }
     expect(result.warning).toContain("Mermaid preview unavailable");
   });
 
