@@ -1,13 +1,13 @@
 export type ChatPreviewPayload = {
   kind: "image";
   mimeType: "image/svg+xml";
-  data: string;
+  svgMarkup: string;
 };
 
-export function createChatPreviewPayload(svg: string): ChatPreviewPayload {
+export function createChatPreviewPayload(svgMarkup: string): ChatPreviewPayload {
   return {
     kind: "image",
     mimeType: "image/svg+xml",
-    data: svg,
+    svgMarkup,
   };
 }

@@ -14,14 +14,31 @@ describe("chat preview state", () => {
     store.toggle("m1:p1:0");
     expect(store.get("m1:p1:0")).toBe("closed");
   });
+
+  it("keeps state isolated per preview key", () => {
+    const store = createPreviewStateStore();
+
+    store.toggle("m1:p1:0");
+
+    expect(store.get("m1:p1:0")).toBe("open");
+    expect(store.get("m1:p1:1")).toBe("closed");
+    expect(store.get("m2:p4:0")).toBe("closed");
+  });
+
+  it("returns next state from toggle", () => {
+    const store = createPreviewStateStore();
+
+    expect(store.toggle("m1:p1:0")).toBe("open");
+    expect(store.toggle("m1:p1:0")).toBe("closed");
+  });
 });
 
 describe("createChatPreviewPayload", () => {
-  it("returns an svg display payload contract", () => {
+  it("returns an svg display payload contract with explicit svg markup field", () => {
     expect(createChatPreviewPayload("<svg/>")).toEqual({
       kind: "image",
       mimeType: "image/svg+xml",
-      data: "<svg/>",
+      svgMarkup: "<svg/>",
     });
   });
 });
