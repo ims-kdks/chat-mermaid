@@ -42,19 +42,28 @@ type TextPart = {
 let rendererPromise: Promise<(code: string) => Promise<string>> | undefined;
 
 async function loadRenderer(): Promise<(code: string) => Promise<string>> {
-  if (!rendererPromise) {
-    rendererPromise = (async () => {
-      const mod = (await import("beautiful-mermaid")) as MermaidRendererModule;
-      if (typeof mod.renderMermaidSVG === "function") {
-        return async (code: string) => Promise.resolve(mod.renderMermaidSVG?.(code));
-      }
-      if (typeof mod.renderMermaid === "function") {
-        return async (code: string) => Promise.resolve(mod.renderMermaid?.(code));
-      }
-      throw new Error("beautiful-mermaid renderer function is unavailable");
-    })();
+  if (rendererPromise) {
+    return rendererPromise;
   }
-  return rendererPromise;
+
+  const newRendererPromise = (async () => {
+    const mod = (await import("beautiful-mermaid")) as MermaidRendererModule;
+    const renderer =
+      typeof mod.renderMermaidSVG === "function"
+        ? mod.renderMermaidSVG
+        : typeof mod.renderMermaid === "function"
+          ? mod.renderMermaid
+          : undefined;
+
+    if (!renderer) {
+      throw new Error("beautiful-mermaid renderer function is unavailable");
+    }
+
+    return async (code: string) => Promise.resolve(renderer(code));
+  })();
+
+  rendererPromise = newRendererPromise;
+  return newRendererPromise;
 }
 
 const renderCoordinator = createRenderCoordinator(async (code) => {

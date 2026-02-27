@@ -39,6 +39,22 @@ vi.mock("beautiful-mermaid", () => {
   };
 });
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
+function getMermaidPreviews(message: { info?: Record<string, unknown> }): Record<string, unknown>[] | undefined {
+  const info = asRecord(message.info);
+  const previews = info?.mermaidPreviews;
+  if (!Array.isArray(previews)) {
+    return undefined;
+  }
+  return previews.filter((preview): preview is Record<string, unknown> => Boolean(asRecord(preview)));
+}
+
 describe("plugin message transform integration", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -78,20 +94,41 @@ describe("plugin message transform integration", () => {
       messages: [modelMessage, assistantMessage, userMessage],
     });
 
-    expect(transformed[0].info.mermaidPreviews).toHaveLength(1);
-    expect(transformed[0].info.mermaidPreviews[0].renderResult.status).toBe("success");
-    expect(transformed[0].info.mermaidPreviews[0].renderResult.payload).toEqual(
+    const firstMessage = transformed[0];
+    const secondMessage = transformed[1];
+    const thirdMessage = transformed[2];
+
+    expect(firstMessage).toBeDefined();
+    expect(secondMessage).toBeDefined();
+    expect(thirdMessage).toBeDefined();
+
+    if (!firstMessage || !secondMessage || !thirdMessage) {
+      throw new Error("expected transformed messages to contain three items");
+    }
+
+    const previews = getMermaidPreviews(firstMessage);
+    expect(previews).toHaveLength(1);
+
+    const firstPreview = previews?.[0];
+    expect(firstPreview).toBeDefined();
+
+    const renderResult = asRecord(firstPreview?.renderResult);
+    expect(renderResult?.status).toBe("success");
+    expect(renderResult?.payload).toEqual(
       expect.objectContaining({
         kind: "image",
         mimeType: "image/svg+xml",
       }),
     );
-    expect(transformed[0].info.mermaidPreviews[0].renderResult.payload.svgMarkup).toContain("<svg");
-    expect(transformed[0].parts).toEqual(modelMessage.parts);
-    expect(transformed[1].info.mermaidPreviews).toBeUndefined();
-    expect(transformed[1].parts).toEqual(assistantMessage.parts);
-    expect(transformed[2].info.mermaidPreviews).toBeUndefined();
-    expect(transformed[2].parts).toEqual(userMessage.parts);
+
+    const payload = asRecord(renderResult?.payload);
+    expect(payload?.svgMarkup).toContain("<svg");
+
+    expect(firstMessage.parts).toEqual(modelMessage.parts);
+    expect(getMermaidPreviews(secondMessage)).toBeUndefined();
+    expect(secondMessage.parts).toEqual(assistantMessage.parts);
+    expect(getMermaidPreviews(thirdMessage)).toBeUndefined();
+    expect(thirdMessage.parts).toEqual(userMessage.parts);
   });
 
   it("adds fallback preview metadata when renderer import fails", async () => {
