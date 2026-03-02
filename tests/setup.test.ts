@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import plugin from "../src/index";
 
 describe("plugin export", () => {
-  it("exports a plugin object", () => {
+  it("exports a plugin hooks object", () => {
     expect(typeof plugin).toBe("object");
-    expect(plugin).toHaveProperty("name", "mermaid-preview");
+    expect(plugin).toHaveProperty("experimental.text.complete");
   });
 });

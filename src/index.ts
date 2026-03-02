@@ -1,4 +1,3 @@
-import { detectMermaidBlocks } from "./core/detect-mermaid-blocks";
 import { createRenderCoordinator, type RenderResult } from "./core/render-coordinator";
 import { createChatPreviewPayload, type ChatPreviewPayload } from "./adapters/chat-adapter";
 
@@ -7,36 +6,14 @@ type MermaidRendererModule = {
   renderMermaid?: (code: string) => string | Promise<string>;
 };
 
-type MermaidPreview = {
-  messageId: string;
-  partId: string;
-  blockIndex: number;
-  code: string;
-  blockHash: string;
-  renderResult: TransformRenderResult;
+type TextCompleteInput = {
+  sessionID: string;
+  messageID: string;
+  partID: string;
 };
 
-type TransformRenderResult =
-  | {
-      status: "success";
-      payload: ChatPreviewPayload;
-    }
-  | {
-      status: "error";
-      warning: "Mermaid preview unavailable";
-    };
-
-type TransformMessage = {
-  id?: string;
-  role?: string;
-  parts?: unknown[];
-  info?: Record<string, unknown>;
-};
-
-type TextPart = {
-  id?: string;
-  type?: string;
-  text?: string;
+type TextCompleteOutput = {
+  text: string;
 };
 
 let rendererPromise: Promise<(code: string) => Promise<string>> | undefined;
@@ -71,7 +48,15 @@ const renderCoordinator = createRenderCoordinator(async (code) => {
   return renderer(code);
 });
 
-function toTransformRenderResult(result: RenderResult): TransformRenderResult {
+function toTransformRenderResult(result: RenderResult):
+  | {
+      status: "success";
+      payload: ChatPreviewPayload;
+    }
+  | {
+      status: "error";
+      warning: "Mermaid preview unavailable";
+    } {
   if (result.status === "success") {
     return {
       status: "success",
@@ -82,81 +67,58 @@ function toTransformRenderResult(result: RenderResult): TransformRenderResult {
   return result;
 }
 
-async function transformMessages(input: { messages: TransformMessage[] }): Promise<TransformMessage[]> {
-  const transformed: TransformMessage[] = [];
-  const messages = Array.isArray(input?.messages) ? input.messages : [];
+function toSvgDataUrl(svgMarkup: string): string {
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svgMarkup)}`;
+}
 
-  for (const [messageIndex, message] of messages.entries()) {
-    try {
-      if (message.role !== "model") {
-        transformed.push(message);
-        continue;
-      }
+export async function renderMermaidInText(text: string): Promise<string> {
+  const fencePattern = /```mermaid[ \t]*\r?\n([\s\S]*?)```/g;
+  let transformed = "";
+  let cursor = 0;
+  let blockIndex = 0;
 
-      const messageId = message.id ?? `message-${messageIndex}`;
-      const previews: MermaidPreview[] = [];
-      const parts = Array.isArray(message.parts) ? message.parts : [];
+  for (const match of text.matchAll(fencePattern)) {
+    const start = match.index ?? cursor;
+    const fullBlock = match[0] ?? "";
+    const code = (match[1] ?? "").trim();
 
-      for (const [partIndex, part] of parts.entries()) {
-        try {
-          const textPart = part as TextPart;
-          if (textPart.type !== "text" || typeof textPart.text !== "string") {
-            continue;
-          }
+    transformed += text.slice(cursor, start);
+    cursor = start + fullBlock.length;
 
-          const partId = textPart.id ?? `part-${partIndex}`;
-          const blocks = detectMermaidBlocks(messageId, partId, textPart.text);
-          for (const block of blocks) {
-            const renderResult = toTransformRenderResult(
-              await renderCoordinator.render(block.blockHash, block.code),
-            );
-            previews.push({
-              messageId,
-              partId,
-              blockIndex: block.blockIndex,
-              code: block.code,
-              blockHash: block.blockHash,
-              renderResult,
-            });
-          }
-        } catch {
-          continue;
-        }
-      }
-
-      if (previews.length === 0) {
-        transformed.push(message);
-        continue;
-      }
-
-      const info =
-        message.info && typeof message.info === "object" && !Array.isArray(message.info)
-          ? message.info
-          : {};
-
-      transformed.push({
-        ...message,
-        info: {
-          ...info,
-          mermaidPreviews: previews,
-        },
-      });
-    } catch {
-      transformed.push(message);
+    if (!code) {
+      transformed += fullBlock;
+      blockIndex += 1;
+      continue;
     }
+
+    const renderResult = toTransformRenderResult(
+      await renderCoordinator.render(`text-complete:text:${blockIndex}:${code}`, code),
+    );
+
+    if (renderResult.status === "success") {
+      transformed += `![Mermaid diagram](${toSvgDataUrl(renderResult.payload.svgMarkup)})`;
+      blockIndex += 1;
+      continue;
+    }
+
+    transformed += `${fullBlock}\n\n> Mermaid preview unavailable`;
+    blockIndex += 1;
   }
 
+  if (blockIndex === 0) {
+    return text;
+  }
+
+  transformed += text.slice(cursor);
   return transformed;
 }
 
 const plugin = {
-  name: "mermaid-preview",
-  experimental: {
-    chat: {
-      messages: {
-        transform: transformMessages,
-      },
-    },
+  "experimental.text.complete": async (
+    _input: TextCompleteInput,
+    output: TextCompleteOutput,
+  ): Promise<void> => {
+    output.text = await renderMermaidInText(output.text);
   },
 };
 
