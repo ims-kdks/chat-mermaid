@@ -1,3 +1,4 @@
+import type { Plugin } from "@opencode-ai/plugin";
 import { createRenderCoordinator, type RenderResult } from "./core/render-coordinator";
 import { createChatPreviewPayload, type ChatPreviewPayload } from "./adapters/chat-adapter";
 
@@ -71,7 +72,7 @@ function toSvgDataUrl(svgMarkup: string): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svgMarkup)}`;
 }
 
-export async function renderMermaidInText(text: string): Promise<string> {
+async function renderMermaidInText(text: string): Promise<string> {
   const fencePattern = /```mermaid[ \t]*\r?\n([\s\S]*?)```/g;
   let transformed = "";
   let cursor = 0;
@@ -113,17 +114,19 @@ export async function renderMermaidInText(text: string): Promise<string> {
   return transformed;
 }
 
-const plugin = {
-  "experimental.text.complete": async (
-    _input: TextCompleteInput,
-    output: TextCompleteOutput,
-  ): Promise<void> => {
-    output.text = await renderMermaidInText(output.text);
-  },
+export const ChatMermaidPlugin: Plugin = async () => {
+  return {
+    "experimental.text.complete": async (
+      _input: TextCompleteInput,
+      output: TextCompleteOutput,
+    ): Promise<void> => {
+      output.text = await renderMermaidInText(output.text);
+    },
+  };
 };
+
+export default ChatMermaidPlugin;
 
 export { handleTuiPreview } from "./adapters/tui-adapter";
 export { createChatPreviewPayload } from "./adapters/chat-adapter";
 export { createPreviewStateStore } from "./state/preview-state-store";
-
-export default plugin;
