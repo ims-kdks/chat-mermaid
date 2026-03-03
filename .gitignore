@@ -1,5 +1,6 @@
 node_modules/
 dist/
 .opencode/
+.claude/
 docs/
 .DS_Store
