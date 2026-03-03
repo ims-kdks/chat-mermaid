@@ -1,6 +1,7 @@
 {
   "name": "chat-mermaid",
-  "version": "0.1.1",
+  "version": "0.1.2",
+  "description": "A plugin for @opencode-ai/plugin that renders Mermaid diagrams in chat responses",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,6 +18,25 @@
     "test": "vitest run",
     "build": "tsc -p tsconfig.build.json"
   },
+  "keywords": [
+    "mermaid",
+    "diagram",
+    "chat",
+    "opencode",
+    "plugin",
+    "svg",
+    "markdown"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/chat-mermaid.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/chat-mermaid/issues"
+  },
+  "homepage": "https://github.com/yourusername/chat-mermaid#readme",
   "devDependencies": {
     "@opencode-ai/plugin": "^1.2.15",
     "@types/node": "^25.3.2",

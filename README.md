@@ -1,41 +1,32 @@
-# Mermaid Preview Plugin
+# chat-mermaid
 
-This plugin detects Mermaid blocks in chat responses and renders previews with environment-aware behavior.
+Render Mermaid diagrams in chat responses for [OpenCode](https://opencode.ai).
 
-## Key behavior
+## Install
 
-- TUI auto-preview: Mermaid blocks in responses are detected and rendered automatically in TUI.
-- Web/Desktop toggle: in chat, use the bottom-of-message toggle to switch between Web and Desktop rendering paths.
-- Fallback raw block + warning: if rendering is unavailable, the plugin shows the original Mermaid block and a warning.
+Add to your OpenCode config, then restart OpenCode:
 
-## Manual verification
+```yaml
+{
+  "plugin": ["chat-mermaid@latest"]
+}
+```
 
-1. Run docs tests for this README.
+## Usage
 
-   ```bash
-   npm test -- tests/docs/readme.test.ts
-   ```
+Mermaid code blocks in chat responses are automatically converted to SVG images.
 
-   Expected outcome:
-   - The test passes.
-   - Output confirms README includes key behavior notes and manual verification instructions.
+## Limitations
 
-2. Build distributable output.
+- **No toggle**: Cannot turn on/off per message or session - once installed, all mermaid blocks are rendered
+- **No configuration**: Cannot customize themes, styles, or rendering options
+- **All-or-nothing**: Cannot selectively render certain blocks while keeping others as raw code
+- **No fallback control**: When rendering fails, the warning message cannot be customized or disabled
 
-   ```bash
-   npm run build
-   ```
+## Contributing
 
-   Expected outcome:
-   - TypeScript compilation succeeds.
-   - A `dist/` directory is produced with compiled JavaScript output for `src/`.
+Contributions are welcome! Feel free to open issues or submit pull requests.
 
-3. Run full test suite.
+## License
 
-   ```bash
-   npm test
-   ```
-
-   Expected outcome:
-   - All tests pass.
-   - No failing docs or behavior assertions.
+MIT
