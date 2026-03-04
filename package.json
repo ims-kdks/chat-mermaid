@@ -27,16 +27,15 @@
     "svg",
     "markdown"
   ],
-  "author": "",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/chat-mermaid.git"
+    "url": "git+https://github.com/ims-kdks/chat-mermaid.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/chat-mermaid/issues"
+    "url": "https://github.com/ims-kdks/chat-mermaid/issues"
   },
-  "homepage": "https://github.com/yourusername/chat-mermaid#readme",
+  "homepage": "https://github.com/ims-kdks/chat-mermaid#readme",
   "devDependencies": {
     "@opencode-ai/plugin": "^1.2.15",
     "@types/node": "^25.3.2",
